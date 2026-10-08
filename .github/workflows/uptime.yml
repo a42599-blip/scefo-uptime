@@ -19,7 +19,11 @@ jobs:
             if [ "$code" != "200" ]; then FAIL=1; echo "::error::$u -> $code"; fi
           done
           exit $FAIL
-      - name: open issue on failure (GitHub emails you)
+      - name: notify LINE
+        if: failure()
+        run: |
+          curl -s -X POST https://api.line.me/v2/bot/message/broadcast             -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}"             -H "Content-Type: application/json"             -d '{"messages": [{"type": "text", "text": "🔴 網站異常！scefo.com 或 v8i8.com 回應非 200。（請查 GitHub Actions）"}]}'
+      - name: open issue on failure
         if: failure()
         uses: actions/github-script@v7
         with:
