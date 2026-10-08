@@ -13,7 +13,7 @@ jobs:
       - name: check sites (scefo + v8i8)
         run: |
           FAIL=0
-          for u in https://scefo.com/ https://v8i8.com/; do
+          for u in https://scefo.com/ https://scefo.com/__pi_line_test_404__; do
             code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
             echo "$u => $code"
             if [ "$code" != "200" ]; then FAIL=1; echo "::error::$u -> $code"; fi
