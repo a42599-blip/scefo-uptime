@@ -1,0 +1,33 @@
+name: uptime
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check 6 sites
+        run: |
+          FAIL=0
+          for u in https://scefo.com/ https://v8i8.com/ https://aa.v8i8.com/ https://s8.v8i8.com/ https://cc.v8i8.com/ https://vv.v8i8.com/; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
+            echo "$u => $code"
+            if [ "$code" != "200" ]; then FAIL=1; echo "::error::$u -> $code"; fi
+          done
+          exit $FAIL
+      - name: open issue on failure (GitHub emails you)
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const open = await github.rest.issues.listForRepo({owner: context.repo.owner, repo: context.repo.repo, state: 'open'});
+            if (open.data.some(i => i.title.startsWith('ALERT'))) { console.log('already open'); return; }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'ALERT: website down ' + new Date().toISOString(),
+              body: 'One or more sites did not return 200. See Actions log. Close this issue after fixing.'
+            });
