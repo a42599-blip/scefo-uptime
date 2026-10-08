@@ -10,10 +10,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: check 6 sites
+      - name: check sites (scefo + v8i8)
         run: |
           FAIL=0
-          for u in https://scefo.com/ https://v8i8.com/ https://aa.v8i8.com/ https://s8.v8i8.com/ https://cc.v8i8.com/ https://vv.v8i8.com/; do
+          for u in https://scefo.com/ https://v8i8.com/; do
             code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
             echo "$u => $code"
             if [ "$code" != "200" ]; then FAIL=1; echo "::error::$u -> $code"; fi
@@ -29,5 +29,5 @@ jobs:
             await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
               title: 'ALERT: website down ' + new Date().toISOString(),
-              body: 'One or more sites did not return 200. See Actions log. Close this issue after fixing.'
+              body: 'scefo.com 或 v8i8.com 未回 200。詳見 Actions 記錄。修好後請關閉本 Issue。'
             });
