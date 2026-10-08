@@ -47,6 +47,13 @@ jobs:
           MSG=$(printf '🔴 網站異常通知\n\n有網站掛了：\n- %s\n\n時間：%s\n（詳情請查 GitHub Actions）' "$BAD" "$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')")
           jq -n --arg t "$MSG" '{messages:[{type:"text",text:$t}]}' > /tmp/line.json
           curl -s -X POST https://api.line.me/v2/bot/message/broadcast -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}" -H "Content-Type: application/json" -d @/tmp/line.json
+      - name: report to admin panel
+        if: failure()
+        run: |
+          BAD="${{ steps.chk.outputs.bad }}"
+          BAD="${BAD//;;/, }"
+          jq -n --arg t "網站異常（GitHub 外部監測）" --arg b "掛掉的網站：$BAD" '{ok:false,title:$t,body:$b,note:"github"}' > /tmp/ext.json
+          curl -s -X POST https://scefo.com/api/monitor/external -H "X-Monitor-Key: ${{ secrets.UPTIME_KEY }}" -H "Content-Type: application/json" -d @/tmp/ext.json || true
       - name: open issue on failure
         if: failure()
         uses: actions/github-script@v7
