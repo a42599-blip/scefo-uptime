@@ -50,8 +50,10 @@ jobs:
           BAD="${{ steps.chk.outputs.bad }}"
           BAD="${BAD//;;/$'\n- '}"
           MSG=$(printf '🔴 網站異常通知\n\n有網站掛了：\n- %s\n\n時間：%s\n（詳情請查 GitHub Actions）' "$BAD" "$(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')")
-          jq -n --arg t "$MSG" '{messages:[{type:"text",text:$t}]}' > /tmp/line.json
-          curl -s -X POST https://api.line.me/v2/bot/message/broadcast -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}" -H "Content-Type: application/json" -d @/tmp/line.json
+          if [ -z "${{ secrets.LINE_TO }}" ]; then echo "未設 LINE_TO，跳過（防群發）"; else
+            jq -n --arg t "$MSG" --arg to "${{ secrets.LINE_TO }}" '{to:$to,messages:[{type:"text",text:$t}]}' > /tmp/line.json
+            curl -s -X POST https://api.line.me/v2/bot/message/push -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}" -H "Content-Type: application/json" -d @/tmp/line.json
+          fi
       - name: report to admin panel
         if: failure()
         run: |
