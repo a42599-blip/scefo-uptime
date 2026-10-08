@@ -13,28 +13,48 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: check sites (scefo + v8i8)
+      - name: check sites
+        id: chk
         run: |
           FAIL=0
+          BAD=""
           for u in https://scefo.com/ https://v8i8.com/; do
             code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
+            name="$u"
+            case "$u" in
+              https://scefo.com/) name="轉運站 scefo.com" ;;
+              https://v8i8.com/)  name="v8i8.com" ;;
+            esac
             echo "$u => $code"
-            if [ "$code" != "200" ]; then FAIL=1; echo "::error::$u -> $code"; fi
+            if [ "$code" != "200" ]; then FAIL=1; BAD="$BAD
+- $name（回應 $code）"; fi
           done
+          echo "bad=$BAD" >> "$GITHUB_OUTPUT"
+          echo "fail=$FAIL" >> "$GITHUB_OUTPUT"
           exit $FAIL
       - name: notify LINE
         if: failure()
         run: |
-          curl -s -X POST https://api.line.me/v2/bot/message/broadcast             -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}"             -H "Content-Type: application/json"             -d '{"messages": [{"type": "text", "text": "🔴 網站異常！scefo.com 或 v8i8.com 回應非 200。（請查 GitHub Actions）"}]}'
+          MSG=$(printf '🔴 網站異常通知
+
+有網站掛了：%b
+
+時間：%s
+（詳情請查 GitHub Actions）' "${{ steps.chk.outputs.bad }}" "$(TZ=Asia/Taipei date '+%%Y-%%m-%%d %%H:%%M')")
+          jq -n --arg t "$MSG" '{messages:[{type:"text",text:$t}]}' > /tmp/line.json
+          curl -s -X POST https://api.line.me/v2/bot/message/broadcast             -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}"             -H "Content-Type: application/json" -d @/tmp/line.json
       - name: open issue on failure
         if: failure()
         uses: actions/github-script@v7
         with:
           script: |
+            const bad = `${{ steps.chk.outputs.bad }}`;
             const open = await github.rest.issues.listForRepo({owner: context.repo.owner, repo: context.repo.repo, state: 'open'});
             if (open.data.some(i => i.title.startsWith('ALERT'))) { console.log('already open'); return; }
             await github.rest.issues.create({
               owner: context.repo.owner, repo: context.repo.repo,
               title: 'ALERT: website down ' + new Date().toISOString(),
-              body: 'scefo.com 或 v8i8.com 未回 200。詳見 Actions 記錄。修好後請關閉本 Issue。'
+              body: '掛掉的網站：' + bad + '
+
+（修好後請關閉本 Issue）'
             });
