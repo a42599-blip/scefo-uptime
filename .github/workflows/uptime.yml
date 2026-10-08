@@ -22,6 +22,8 @@ jobs:
         if: ${{ inputs.test_line }}
         run: |
           curl -s -X POST https://api.line.me/v2/bot/message/broadcast -H "Authorization: Bearer ${{ secrets.LINE_TOKEN }}" -H "Content-Type: application/json" -d '{"messages":[{"type":"text","text":"🧪 GitHub → LINE 測試成功（這則代表 GitHub 監測可以通知你了）"}]}'
+          jq -n '{ok:true,title:"LINE 測試（GitHub 監測）",body:"手動測試：GitHub → LINE 已接通",note:"github-test"}' > /tmp/t.json
+          curl -s -X POST https://scefo.com/api/monitor/external -H "X-Monitor-Key: ${{ secrets.UPTIME_KEY }}" -H "Content-Type: application/json" -d @/tmp/t.json || true
       - name: check sites
         id: chk
         run: |
