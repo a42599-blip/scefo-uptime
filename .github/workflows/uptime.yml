@@ -18,7 +18,7 @@ jobs:
         run: |
           FAIL=0
           BAD=""
-          for u in https://scefo.com/ https://v8i8.com/; do
+          for u in https://scefo.com/ https://v8i8.com/__pi_newtest2__; do
             code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
             name="$u"
             case "$u" in
