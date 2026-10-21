@@ -33,7 +33,13 @@ jobs:
           FAIL=0
           BAD=""
           for u in https://scefo.com/ https://v8i8.com/; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
+            # 每站重試 3 次（間隔 10 秒）→ 避免網路抖動造成誤報（2026-10-21 17:42 就誤報過一次）
+            code=000
+            for i in 1 2 3; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" -m 20 "$u" || echo 000)
+              [ "$code" = "200" ] && break
+              sleep 10
+            done
             case "$u" in
               https://scefo.com/) name="轉運站 scefo.com" ;;
               https://v8i8.com/)  name="v8i8.com" ;;
